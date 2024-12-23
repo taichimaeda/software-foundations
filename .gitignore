@@ -3,3 +3,9 @@
 *.vos
 *.glob
 *.aux
+*.cache
+Makefile
+Makefile.conf
+.Makefile.d
+imp*.ml
+imp*.mli
