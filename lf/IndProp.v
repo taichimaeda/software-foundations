@@ -198,7 +198,8 @@ Proof.
     transitive closure? *)
 
 (* FILL IN HERE
-
+Define clos_refl and close_symm as inductive propositions 
+and then define ancestor_of as clos_refl (clos_symm (clos_trans parent_of))
     [] *)
 
 (* ================================================================= *)

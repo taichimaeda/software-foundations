@@ -880,7 +880,7 @@ Proof.
   - reflexivity.
   - simpl. rewrite -> add_0_r. rewrite <- IHb. rewrite -> nat_to_bin_double_bin. reflexivity.
   - simpl. rewrite -> add_0_r. rewrite <- IHb. rewrite nat_to_bin_incr. rewrite -> nat_to_bin_double_bin. reflexivity.
-
+Qed.
 (** [] *)
 
 (* 2023-12-29 17:12 *)
