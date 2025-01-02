@@ -1171,7 +1171,7 @@ End R.
       transitive -- that is, if [l1] is a subsequence of [l2] and [l2]
       is a subsequence of [l3], then [l1] is a subsequence of [l3]. *)
 
-Inductive subseq : list nat -> list nat -> Prop :=
+Inductive subseq {X : Type} : list X -> list X -> Prop :=
   | c1 l2 : subseq nil l2
   | c2 n l1 l2 (H : subseq l1 l2) : subseq l1 (n :: l2)
   | c3 n l1 l2 (H : subseq l1 l2) : subseq (n :: l1) (n :: l2).
@@ -2280,9 +2280,23 @@ Qed.
     evaluates to [true] on all their members, [filter test l] is the
     longest.  Formalize this claim and prove it. *)
 
-(* FILL IN HERE
-
-    [] *)
+Theorem filter_longest : forall (X : Set) (test : X -> bool) (s l : list X),
+  subseq s l ->
+  All (fun n => test n = true) s ->
+  length s <= length (filter test l).
+Proof.
+  intros X test s l P.
+  Print subseq.
+  induction P as [|n l1 l2 P1 IH|n l1 l2 P1 IH].
+  - intros _. simpl. apply le_0_n.
+  - intros H. simpl. destruct (test n) eqn:T.
+    + simpl. apply le_S. apply IH. exact H.
+    + apply IH. exact H.
+  - intros H. simpl. destruct (test n) eqn:T.
+    + simpl. apply n_le_m__Sn_le_Sm. apply IH.
+      simpl in H. destruct H as [_ H]. exact H.
+    + simpl in H. destruct H as [H _]. rewrite -> T in H. discriminate H.
+Qed.
 
 (** **** Exercise: 4 stars, standard, optional (palindromes)
 
