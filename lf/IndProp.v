@@ -1464,13 +1464,18 @@ Qed.
 Lemma empty_is_empty : forall T (s : list T),
   ~ (s =~ EmptySet).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T s H. inversion H.
+Qed.
 
 Lemma MUnion' : forall T (s : list T) (re1 re2 : reg_exp T),
   s =~ re1 \/ s =~ re2 ->
   s =~ Union re1 re2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T s re1 re2 H.
+  destruct H.
+  - apply MUnionL. exact H.
+  - apply MUnionR. exact H.
+Qed.
 
 (** The next lemma is stated in terms of the [fold] function from the
     [Poly] chapter: If [ss : list (list T)] represents a sequence of
@@ -1481,7 +1486,13 @@ Lemma MStar' : forall T (ss : list (list T)) (re : reg_exp T),
   (forall s, In s ss -> s =~ re) ->
   fold app ss [] =~ Star re.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T ss re H.
+  induction ss as [|s ss' IHss'].
+  - simpl. apply MStar0.
+  - simpl. apply MStarApp.
+    + apply H. simpl. left. reflexivity.
+    + apply IHss'. intros s' H'. apply H. simpl. right. exact H'.
+Qed.
 (** [] *)
 
 (** Since the definition of [exp_match] has a recursive
@@ -1570,13 +1581,56 @@ Qed.
     regular expression matches some string. Prove that your function
     is correct. *)
 
-Fixpoint re_not_empty {T : Type} (re : reg_exp T) : bool
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint re_not_empty {T : Type} (re : reg_exp T) : bool :=
+  match re with
+  | EmptySet => false
+  | EmptyStr => true
+  | Char _ => true
+  | App re1 re2 => (re_not_empty re1) && (re_not_empty re2)
+  | Union re1 re2 => (re_not_empty re1) || (re_not_empty re2)
+  | Star re => true (* Star re contains [] *)
+  end.
 
 Lemma re_not_empty_correct : forall T (re : reg_exp T),
   (exists s, s =~ re) <-> re_not_empty re = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T re. split.
+  { intros H. destruct H as [s H].
+    induction H as [|x|s1 re1 s2 re2 H1 IH1 H2 IH2
+                    |s1 re1 re2 H1 IH1|re1 s2 re2 H2 IH2|re|s1 s2 re H1 IH1 H2 IH2].
+    - simpl. reflexivity.
+    - simpl. reflexivity.
+    - simpl. rewrite -> IH1, IH2. simpl. reflexivity.
+    - simpl. rewrite -> IH1. simpl. reflexivity.
+    - simpl. rewrite -> IH2.
+      assert (orb_sym : forall a b, a || b = b || a).
+      { intros a b. destruct a, b; repeat reflexivity. }
+       rewrite -> orb_sym. simpl. reflexivity.
+    - simpl. reflexivity.
+    - simpl. reflexivity. }
+  { intros H. induction re as [| |x|re1 IH1 re2 IH2|re1 IH1 re2 IH2|re IH].
+    - simpl in H. discriminate H.
+    - exists []. apply MEmpty.
+    - exists [x]. apply MChar.
+    - simpl in H.
+      assert (andb_true : forall a b, a && b = true -> a = true /\ b = true).
+      { intros a b H'. destruct a, b; split; repeat reflexivity; try discriminate. }
+      apply andb_true in H. destruct H as [H1 H2].
+      apply IH1 in H1. apply IH2 in H2.
+      destruct H1 as [s1 H1]. destruct H2 as [s2 H2].
+      exists (s1 ++ s2). apply MApp; exact H1 || exact H2.
+    - simpl in H.
+      assert (orb_true : forall a b, a || b = true -> a = true \/ b = true).
+      { intros a b H'. destruct a, b.
+        - left. reflexivity.
+        - left. reflexivity.
+        - right. reflexivity.
+        - discriminate H'. }
+      apply orb_true in H. destruct H as [H|H].
+      + apply IH1 in H. destruct H as [s H1]. exists s. apply MUnionL. exact H1.
+      + apply IH2 in H. destruct H as [s H2]. exists s. apply MUnionR. exact H2.
+    - exists []. apply MStar0. }
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1712,7 +1766,28 @@ Lemma MStar'' : forall T (s : list T) (re : reg_exp T),
     s = fold app ss []
     /\ forall s', In s' ss -> s' =~ re.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros T s re H.
+  remember (Star re) as re'.
+  induction H as [|x'|s1 re1 s2' re2 Hmatch1 IH1 Hmatch2 IH2
+        |s1 re1 re2 Hmatch IH|re1 s2' re2 Hmatch IH
+        |re''|s1 s2' re'' Hmatch1 IH1 Hmatch2 IH2].
+  - discriminate Heqre'.
+  - discriminate Heqre'.
+  - discriminate Heqre'.
+  - discriminate Heqre'.
+  - discriminate Heqre'.
+  - exists []. simpl. split.
+    + reflexivity.
+    + intros s' H. destruct H.
+  - injection Heqre' as Heqre'. rewrite -> Heqre' in *. clear Heqre'.
+    destruct IH2 as [ss [H1 H2]].
+    + reflexivity.
+    + rewrite -> H1. exists (s1 :: ss). simpl. split.
+      * reflexivity.
+      * intros s' H. destruct H.
+        { rewrite <- H. exact Hmatch1. }
+        { apply H2. exact H. }
+Qed.
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced (weak_pumping)
@@ -1844,8 +1919,49 @@ Proof.
        | s1 re1 re2 Hmatch IH | re1 s2 re2 Hmatch IH
        | re | s1 s2 re Hmatch1 IH1 Hmatch2 IH2 ].
   - (* MEmpty *)
-    simpl. intros contra. inversion contra.
-  (* FILL IN HERE *) Admitted.
+    simpl. intros H. inversion H.
+  - (* MChar *)
+    simpl. intros H. inversion H as [|n1 H1 Heq]. inversion H1.
+  - (* MApp *)
+    simpl. intros H. rewrite -> app_length in H. apply add_le_cases in H.
+    destruct H as [H|H].
+    { apply IH1 in H. clear IH1 IH2. destruct H as [s1' [s2' [s3' H]]].
+      exists s1', s2', (s3' ++ s2). destruct H as [H1 H2]. split.
+      - rewrite -> 2 app_assoc. f_equal. rewrite <- app_assoc. exact H1.
+      - destruct H2 as [H2' H2'']. split.
+        + exact H2'.
+        + intros m. rewrite -> 2 app_assoc. apply MApp. 
+          * rewrite <- app_assoc. apply H2''.
+          * exact Hmatch2. }
+    { apply IH2 in H. clear IH1 IH2. destruct H as [s1' [s2' [s3' H]]].
+      exists (s1 ++ s1'), s2', s3'. destruct H as [H1 H2]. split.
+      - rewrite <- app_assoc. f_equal. exact H1.
+      - destruct H2 as [H2' H2'']. split.
+        + exact H2'.
+        + intros m. rewrite <- app_assoc. apply MApp. 
+          * exact Hmatch1.
+          * apply H2''. }
+  - (* MUnionL *)
+    simpl. intros H. apply plus_le in H. destruct H as [H1 _].
+    apply IH in H1. clear IH. destruct H1 as [s2' [s3' [s4' H1]]].
+    exists s2', s3', s4'. destruct H1 as [H1' [H1'' H1''']]. split.
+    + exact H1'.
+    + split.
+      * exact H1''.
+      * intros m. apply MUnionL. apply H1'''.
+  - (* MUnionR *)
+    simpl. intros H. apply plus_le in H. destruct H as [_ H2]. 
+    apply IH in H2. clear IH. destruct H2 as [s2' [s3' [s4' H2]]].
+    exists s2', s3', s4'. destruct H2 as [H2' [H2'' H2''']]. split.
+    + exact H2'.
+    + split.
+      * exact H2''.
+      * intros m. apply MUnionR. apply H2'''.
+  - (* MStar0 *)
+    simpl. intros H. inversion H as [H1|]. apply pumping_constant_0_false in H1. destruct H1.
+  - (* MStarApp *)
+    simpl in *. intros H. admit.
+Admitted.
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced, optional (pumping)
@@ -1954,7 +2070,14 @@ Qed.
 (** **** Exercise: 2 stars, standard, especially useful (reflect_iff) *)
 Theorem reflect_iff : forall P b, reflect P b -> (P <-> b = true).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P b H. inversion H as [H'|H'].
+  - split.
+    + intros _. reflexivity.
+    + intros _. exact H'.
+  - split.
+    + intros H1. contradiction.
+    + intros H1. discriminate H1.
+Qed.
 (** [] *)
 
 (** We can think of [reflect] as a variant of the usual "if and only
@@ -2013,7 +2136,13 @@ Theorem eqbP_practice : forall n l,
   count n l = 0 -> ~(In n l).
 Proof.
   intros n l Hcount. induction l as [| m l' IHl'].
-  (* FILL IN HERE *) Admitted.
+  - simpl. intros H. contradiction.
+  - simpl. intros H. simpl in Hcount. destruct (eqbP n m) as [H'|H'].
+    + simpl in Hcount. discriminate Hcount.
+    + simpl in Hcount. apply IHl' in Hcount. destruct H.
+      * apply H'. symmetry. exact H.
+      * apply Hcount in H. destruct H.
+Qed.
 (** [] *)
 
 (** This small example shows reflection giving us a small gain in
@@ -2046,8 +2175,10 @@ Proof.
     [nostutter]. *)
 
 Inductive nostutter {X:Type} : list X -> Prop :=
- (* FILL IN HERE *)
-.
+  | SEmpty : nostutter []
+  | SSingle (x : X) : nostutter [x]
+  | SAppend (h1 h2 : X) (t : list X) (Hneq : h1 <> h2) : nostutter (h2 :: t) -> nostutter (h1 :: h2 :: t).
+
 (** Make sure each of these tests succeeds, but feel free to change
     the suggested proof (in comments) if the given one doesn't work
     for you.  Your definition might be different from ours and still
@@ -2059,34 +2190,27 @@ Inductive nostutter {X:Type} : list X -> Prop :=
     example with more basic tactics.)  *)
 
 Example test_nostutter_1: nostutter [3;1;4;1;5;6].
-(* FILL IN HERE *) Admitted.
-(* 
-  Proof. repeat constructor; apply eqb_neq; auto.
-  Qed.
-*)
+Proof. repeat constructor; apply eqb_neq; auto.
+Qed.
+
 
 Example test_nostutter_2:  nostutter (@nil nat).
-(* FILL IN HERE *) Admitted.
-(* 
-  Proof. repeat constructor; apply eqb_neq; auto.
-  Qed.
-*)
+Proof. repeat constructor; apply eqb_neq; auto.
+Qed.
+
 
 Example test_nostutter_3:  nostutter [5].
-(* FILL IN HERE *) Admitted.
-(* 
-  Proof. repeat constructor; auto. Qed.
-*)
+Proof. repeat constructor; apply eqb_neq; auto.
+Qed.
+
 
 Example test_nostutter_4:      not (nostutter [3;1;1;4]).
-(* FILL IN HERE *) Admitted.
-(* 
-  Proof. intro.
-  repeat match goal with
-    h: nostutter _ |- _ => inversion h; clear h; subst
-  end.
-  contradiction; auto. Qed.
-*)
+Proof. intro.
+repeat match goal with
+  h: nostutter _ |- _ => inversion h; clear h; subst
+end.
+contradiction; auto. Qed.
+
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_nostutter : option (nat*string) := None.
@@ -2122,8 +2246,9 @@ Definition manual_grade_for_nostutter : option (nat*string) := None.
     others.  Do this with an inductive relation, not a [Fixpoint].  *)
 
 Inductive merge {X:Type} : list X -> list X -> list X -> Prop :=
-(* FILL IN HERE *)
-.
+  | LEmpty : merge [] [] []
+  | LLeft (h : X) (l1 l2 l : list X) : merge l1 l2 l -> merge (h :: l1) l2 (h :: l)
+  | LRight (h : X) (l1 l2 l : list X) : merge l1 l2 l -> merge l1 (h :: l2) (h :: l).
 
 Theorem merge_filter : forall (X : Set) (test: X->bool) (l l1 l2 : list X),
   merge l1 l2 l ->
@@ -2131,7 +2256,18 @@ Theorem merge_filter : forall (X : Set) (test: X->bool) (l l1 l2 : list X),
   All (fun n => test n = false) l2 ->
   filter test l = l1.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X test l l1 l2 P.
+  induction P as [|h l1 l2 l H IH|h l1 l2 l H IH].
+  - intros _ _. simpl. reflexivity.
+  - intros H1 H2. simpl. destruct (test h) eqn:T.
+    + f_equal. apply IH.
+      * simpl in H1. destruct H1 as [_ H1]. exact H1.
+      * exact H2.
+    + simpl in H1. destruct H1 as [H1 _]. rewrite -> H1 in T. discriminate T.
+  - intros H1 H2. simpl. destruct (test h) eqn:T.
+    + simpl in H2. destruct H2 as [H2 _]. rewrite -> H2 in T. discriminate T.
+    + simpl in H2. destruct H2 as [_ H2]. apply (IH H1 H2).
+Qed.
 
 (* FILL IN HERE *)
 
