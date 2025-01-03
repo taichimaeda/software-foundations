@@ -2921,8 +2921,67 @@ Proof. simpl. reflexivity. Qed.
     [Prop]'s naturally using [intro] and [destruct]. *)
 Lemma derive_corr : derives derive.
 Proof.
-  unfold derives. intros a re.
-Admitted.
+  unfold derives. unfold is_der.
+  intros a re s. split; generalize dependent s; generalize dependent a.
+  { induction re.
+    - intros a s H. inversion H.
+    - intros a s H. inversion H.
+    - intros a s H. inversion H. subst. simpl.
+      rewrite -> Ascii.eqb_refl. apply MEmpty.
+    - intros a s H. simpl. destruct (match_eps re1) eqn:E.
+      + rewrite -> app_ne in H. destruct H as [H|H].
+        * destruct H as [H1 H2]. apply MUnionR. apply IHre2. exact H2.
+        * destruct H as [s0 [s1 [H1 [H2 H3]]]]. subst. apply MUnionL. apply MApp.
+          { apply IHre1. exact H2. }
+          { apply H3. }
+      + pose proof (match_eps_refl re1) as M.
+        rewrite -> E in M. inversion M as [|M']. unfold not in M'. clear E. clear M.
+        rewrite -> app_ne in H. destruct H as [H|H].
+        * destruct H as [H1 H2]. apply M' in H1. destruct H1.
+        * destruct H as [s0 [s1 [H1 [H2 H3]]]]. subst. apply MApp.
+          { apply IHre1. exact H2. }
+          { apply H3. }
+    - intros a s H. simpl. rewrite -> union_disj in H. destruct H as [H|H].
+      + apply MUnionL. apply IHre1. exact H.
+      + apply MUnionR. apply IHre2. exact H.
+    - intros a s H. simpl. rewrite -> star_ne in H.
+      destruct H as [s0 [s1 [H1 [H2 H3]]]]. subst. apply MApp.
+      + apply IHre. exact H2.
+      + exact H3. }
+  { induction re.
+    - intros a s H. inversion H.
+    - intros a s H. inversion H.
+    - intros a s H. simpl in H. destruct (Ascii.eqb a t) eqn:E.
+      + apply Ascii.eqb_eq in E. subst. inversion H. apply MChar.
+      + inversion H.
+    - intros a s H. simpl in H. destruct (match_eps re1) eqn:E;
+      pose proof (match_eps_refl re1) as M;
+      rewrite -> E in M; inversion M as [|M']; try unfold not in M'; clear E; clear M.
+      + rewrite -> union_disj in H. destruct H as [H|H].
+        * apply app_ne. rewrite -> app_exists in H. right.
+          destruct H as [s0 [s1 [H1 [H2 H3]]]]. exists s0, s1.
+          split. exact H1. split.
+          { apply IHre1 in H2. exact H2. }
+          { exact H3. }
+        * apply app_ne. left. split.
+          { exact H0. }
+          { apply IHre2. exact H. }
+      + apply app_ne. rewrite -> app_exists in H. right.
+        destruct H as [s0 [s1 [H1 [H2 H3]]]]. exists s0, s1.
+        split. exact H1. split.
+        { apply IHre1 in H2. exact H2. }
+        { exact H3. }
+    - intros a s H. simpl in H.
+      rewrite -> union_disj in H. destruct H as [H|H].
+      + apply MUnionL. apply IHre1. exact H.
+      + apply MUnionR. apply IHre2. exact H.
+    - intros a s H. simpl in H. 
+      apply star_ne. rewrite -> app_exists in H.
+      destruct H as [s0 [s1 [H1 [H2 H3]]]]. exists s0, s1.
+      split. exact H1. split.
+      + apply IHre. exact H2.
+      + exact H3. }
+Qed.
 (** [] *)
 
 (** We'll define the regex matcher using [derive]. However, the only
