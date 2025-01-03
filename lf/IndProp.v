@@ -2378,7 +2378,11 @@ Admitted.
     lists (with elements of type X) that have no elements in
     common. *)
 
-(* FILL IN HERE *)
+Fixpoint disjoint (A : Type) (l1 l2 : list A) : Prop :=
+  match l1 with 
+  | [] => True
+  | x :: l1' => ~ (In x l2) /\ disjoint A l1' l2
+  end.
 
 (** Next, use [In] to define an inductive proposition [NoDup X
     l], which should be provable exactly when [l] is a list (with
@@ -2387,12 +2391,41 @@ Admitted.
     bool []] should be provable, while [NoDup nat [1;2;1]] and
     [NoDup bool [true;true]] should not be.  *)
 
-(* FILL IN HERE *)
+Inductive NoDup {X : Type} : list X -> Prop :=
+  | NoDup_Empty : NoDup []
+  | NoDup_Append (x : X) (l : list X) (I : ~ In x l) (H : NoDup l) : NoDup (x :: l).
 
 (** Finally, state and prove one or more interesting theorems relating
     [disjoint], [NoDup] and [++] (list append).  *)
 
-(* FILL IN HERE *)
+Lemma app_eq_nil : forall (X : Type) (l1 l2 : list X),
+  l1 ++ l2 = [] -> l1 = [] /\ l2 = [].
+Proof.
+  intros X l1 l2 H. destruct l1 as [|x l1'].
+  - simpl in H. split.
+    + reflexivity.
+    + exact H.
+  - simpl in H. discriminate H.
+Qed.
+
+Lemma neg_In_app : forall (X : Type) (x : X) (l1 l2 : list X),
+  ~ In x (l1 ++ l2) -> ~ In x l1 /\ ~ In x l2.
+Proof.
+  intros X x l1 l2 H.
+  pose proof (In_app_iff X l1 l2 x). rewrite -> H0 in H.
+  apply de_morgan_not_or in H. exact H.
+Qed.
+
+Theorem NoDup_disjoint : forall (X : Type) (l1 l2 : list X),
+  NoDup (l1 ++ l2) -> disjoint X l1 l2.
+Proof.
+  intros X l1 l2 P. induction l1 as [|x l1' IH].
+  - simpl. exact I.
+  - simpl. split.
+    + intros H. inversion P as [|x' l' I' H'].
+      apply neg_In_app in I'. destruct I' as [I1 I2]. contradiction.
+    + apply IH. inversion P as [|x' l' I' H']. exact H'.
+Qed.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_NoDup_disjoint_etc : option (nat*string) := None.
