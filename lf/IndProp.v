@@ -2445,14 +2445,21 @@ Lemma in_split : forall (X:Type) (x:X) (l:list X),
   In x l ->
   exists l1 l2, l = l1 ++ x :: l2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X x l P. 
+  induction l as [|x' l' IH].
+  - simpl in P. destruct P.
+  - simpl in P. destruct P as [P|P].
+    + subst. exists [], l'. reflexivity.
+    + apply IH in P. clear IH. destruct P as [l1 [l2 P]].
+      rewrite -> P. exists (x' :: l1), l2. reflexivity.
+Qed.
 
 (** Now define a property [repeats] such that [repeats X l] asserts
     that [l] contains at least one repeated element (of type [X]).  *)
 
 Inductive repeats {X:Type} : list X -> Prop :=
-  (* FILL IN HERE *)
-.
+  | rep_c1 (h : X) (l : list X) (H : In h l) : repeats (h :: l)
+  | rep_c2 (h : X) (l : list X) (H : repeats l) : repeats (h :: l).
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_check_repeats : option (nat*string) := None.
@@ -2469,14 +2476,41 @@ Definition manual_grade_for_check_repeats : option (nat*string) := None.
     go through _without_ assuming that [In] is decidable; if you
     manage to do this, you will not need the [excluded_middle]
     hypothesis. *)
+  
+Lemma in_unsplit : forall (X : Type) (x x': X) (l1 l2 : list X),
+  x' <> x -> In x (l1 ++ x' :: l2) -> In x (l1 ++ l2).
+Proof.
+  intros X x x' l1 l2 Hneq H. apply In_app_iff in H. destruct H as [H|H].
+  - apply In_app_iff. left. exact H.
+  - simpl in H. destruct H as [H|H].
+    + contradiction.
+    + apply In_app_iff. right. exact H.
+Qed.
+
 Theorem pigeonhole_principle: excluded_middle ->
   forall (X:Type) (l1  l2:list X),
   (forall x, In x l1 -> In x l2) ->
   length l2 < length l1 ->
   repeats l1.
 Proof.
-  intros EM X l1. induction l1 as [|x l1' IHl1'].
-  (* FILL IN HERE *) Admitted.
+  intros EM X l1. unfold excluded_middle in EM.
+  induction l1 as [|x1 l1 IHl1'].
+  - intros l2 P H. simpl in H. unfold "<" in *. inversion H.
+  - intros l2 P H. simpl in H. unfold "<" in *. apply Sn_le_Sm__n_le_m in H.
+    destruct l2 as [|x2 l2].
+    + simpl in H. simpl in P. exfalso. apply (P x1). left. reflexivity.
+    + destruct (EM (In x1 l1)) as [H1|H1].
+      * apply rep_c1. exact H1.
+      * pose proof (in_split _ x1 (x2::l2)) as SP. destruct SP as [l1' [l2' SP]].
+        { apply (P x1). simpl. left. reflexivity. }
+        { apply rep_c2. apply (IHl1' (l1' ++ l2')).
+          - intros x3 H3. rewrite -> SP in P. 
+            assert (Hneq : x1 <> x3). { unfold not. intros Heq. rewrite Heq in H1. contradiction. }
+            apply (in_unsplit X x3 x1 l1' l2' Hneq). apply P. simpl. right. exact H3.
+          - rewrite -> SP in H. rewrite -> app_length in H. simpl in H.
+            rewrite <- plus_n_Sm in H. rewrite <- app_length in H. exact H. }
+Qed.
+
 (** [] *)
 
 (* ================================================================= *)
