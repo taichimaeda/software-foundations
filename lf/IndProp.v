@@ -2499,14 +2499,24 @@ Proof.
   - intros l2 P H. simpl in H. unfold "<" in *. apply Sn_le_Sm__n_le_m in H.
     destruct l2 as [|x2 l2].
     + simpl in H. simpl in P. exfalso. apply (P x1). left. reflexivity.
-    + destruct (EM (In x1 l1)) as [H1|H1].
-      * apply rep_c1. exact H1.
-      * pose proof (in_split _ x1 (x2::l2)) as SP. destruct SP as [l1' [l2' SP]].
+    + specialize (EM (In x1 l1)). destruct EM as [H1|H1].
+      * (* In x1 l1 *)
+        apply rep_c1. exact H1.
+      * (* ~ In x1 l1 *)
+        (* When applying IH, we need to show the following P' from P:
+           P' : forall x' : X, In x' l1         -> In x' l2
+           P  : forall x' : X, In x' (x1 :: l1) -> In x' (x2 :: l2)
+           We exploit the fact that ~ In x1 l1 (by EM) and In x' l1 (by premise of P')
+           This implies x1 <> x', which means the truth of In does not matter with or without x1 in P.
+           So we should be able to remove x1 from In x' (x1 :: l1) and In x' (x2 :: l2) in P.
+           This is done by splitting (x2 :: l2) to expose x1 in it.
+        *)
+        pose proof (in_split _ x1 (x2::l2)) as SP. destruct SP as [l1' [l2' SP]].
         { apply (P x1). simpl. left. reflexivity. }
-        { apply rep_c2. apply (IHl1' (l1' ++ l2')).
-          - intros x3 H3. rewrite -> SP in P. 
-            assert (Hneq : x1 <> x3). { unfold not. intros Heq. rewrite Heq in H1. contradiction. }
-            apply (in_unsplit X x3 x1 l1' l2' Hneq). apply P. simpl. right. exact H3.
+        { apply rep_c2. rewrite -> SP in P. apply (IHl1' (l1' ++ l2')).
+          - intros x' P'. specialize (P x').
+            assert (Hneq : x1 <> x'). { unfold not. intros Heq. rewrite Heq in H1. contradiction. }
+            apply (in_unsplit _ x' x1 l1' l2' Hneq). apply P. simpl. right. exact P'.
           - rewrite -> SP in H. rewrite -> app_length in H. simpl in H.
             rewrite <- plus_n_Sm in H. rewrite <- app_length in H. exact H. }
 Qed.
