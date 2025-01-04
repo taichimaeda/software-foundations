@@ -339,6 +339,7 @@ Inductive foo (X Y : Type) : Type :=
   | bar (x : X) : foo X Y
   | baz (y : Y) : foo X Y
   | quux (f1 : nat -> foo X Y) : foo X Y.
+(* f1 can be seen as a collection foo X Y which quux depends on *)
 
 Check foo_ind.
 (* f1 can be seen as collection of foo X Y *)
@@ -918,6 +919,8 @@ Definition nat_ind2 :
                        | S (S n') => PSS n' (f n')
                        end.
 
+Check nat_ind2.
+
  (** Once you get the hang of it, it is entirely straightforward to
      give an explicit proof term for induction principles like this.
      Proving this as a lemma using tactics is much less intuitive.
@@ -985,14 +988,21 @@ Proof.
     use. There are many possible answers. Recall that you can use
     [match] as part of the definition. *)
 
-Definition better_t_tree_ind_type : Prop
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition better_t_tree_ind_type : Prop :=
+  forall (X : Type) (P : t_tree X -> Prop),
+  P t_leaf ->
+  (forall (x : X) (l r : t_tree X), P l -> P r -> P (t_branch (l, x, r))) ->
+  forall t : t_tree X, P t.
 
 (** Second, define the induction principle by giving a term of that
     type. Use the examples about [nat], above, as models. *)
 
-Definition better_t_tree_ind : better_t_tree_ind_type
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition better_t_tree_ind : better_t_tree_ind_type :=
+  fun X => fun P => fun Hleaf => fun Hbranch => fix f (t : t_tree X) :=
+    match t with
+    | t_leaf => Hleaf
+    | t_branch (l, x, r) => Hbranch x l r (f l) (f r)
+    end.
 
 (** Finally, prove the theorem. If [induction...using] gives you an
     error about "Cannot recognize an induction scheme", don't worry
@@ -1003,7 +1013,14 @@ Definition better_t_tree_ind : better_t_tree_ind_type
 
 Theorem reflect_involution : forall (X : Type) (t : t_tree X),
     reflect (reflect t) = t.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  intros X.
+  apply better_t_tree_ind.
+  - simpl. reflexivity.
+  - intros x l r IHl IHr. simpl. f_equal. f_equal. f_equal.
+    + exact IHl.
+    + exact IHr.
+Qed.
 
 (** [] *)
 
