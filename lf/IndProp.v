@@ -2998,8 +2998,11 @@ Definition matches_regex m : Prop :=
 
     Complete the definition of [regex_match] so that it matches
     regexes. *)
-Fixpoint regex_match (s : string) (re : reg_exp ascii) : bool
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint regex_match (s : string) (re : reg_exp ascii) : bool :=
+  match s with
+  | [] => match_eps re
+  | h :: t => regex_match t (derive h re)
+  end.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (regex_match_correct)
@@ -3017,7 +3020,20 @@ Fixpoint regex_match (s : string) (re : reg_exp ascii) : bool
     [s =~ derive x re], and vice versa. *)
 Theorem regex_match_correct : matches_regex regex_match.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold matches_regex.
+  intros s. induction s as [|a s IH].
+  - intros re. simpl. apply match_eps_refl.
+  - intros re. simpl. pose proof (derive_corr a re s) as D.
+    destruct (regex_match _ _) eqn:E.
+    + apply ReflectT. rewrite -> D.
+      specialize (IH (derive a re)). inversion IH.
+      * exact H0.
+      * symmetry in H. rewrite -> H in E. discriminate E.
+    + apply ReflectF. intros H. rewrite -> D in H. 
+      specialize (IH (derive a re)). inversion IH.
+      * symmetry in H0. rewrite -> H0 in E. discriminate E.
+      * contradiction.
+Qed.
 (** [] *)
 
 (* 2023-12-29 17:12 *)
