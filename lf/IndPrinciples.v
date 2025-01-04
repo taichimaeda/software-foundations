@@ -71,7 +71,10 @@ Proof.
 Theorem plus_one_r' : forall n:nat,
   n + 1 = S n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply nat_ind.
+  - simpl. reflexivity.
+  - intros n' IH. simpl. f_equal. exact IH.
+Qed.
 (** [] *)
 
 (** Coq generates induction principles for every datatype
@@ -119,6 +122,8 @@ Inductive rgb : Type :=
   | green
   | blue.
 Check rgb_ind.
+(* forall P : rgb -> Prop, P red -> P green -> P blue -> forall r : rgb, P r *)
+
 (** [] *)
 
 (** Here's another example, this time with one of the constructors
@@ -187,16 +192,22 @@ Inductive booltree : Type :=
    in between here and there. Fill in those definitions based on what
    you wrote on paper. *)
 
+(* forall P : booltree -> Prop,
+   P bt_empty 
+   /\ (forall b : bool, P (bt_leaf b))
+   /\ (forall (b : bool) (t1 t2 : booltree), P t1 -> P t2 -> P (bt_branch b t1 t2))
+   -> forall t : booltree, P t *)
+
 Definition booltree_property_type : Type := booltree -> Prop.
 
-Definition base_case (P : booltree_property_type) : Prop
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition base_case (P : booltree_property_type) : Prop :=
+  P bt_empty.
 
-Definition leaf_case (P : booltree_property_type) : Prop
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition leaf_case (P : booltree_property_type) : Prop :=
+  forall b : bool, P (bt_leaf b).
 
-Definition branch_case (P : booltree_property_type) : Prop
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition branch_case (P : booltree_property_type) : Prop :=
+  forall (b : bool) (t1 : booltree), P t1 -> (forall (t2 : booltree), P t2 -> P (bt_branch b t1 t2)).
 
 Definition booltree_ind_type :=
   forall (P : booltree_property_type),
@@ -212,8 +223,7 @@ Definition booltree_ind_type :=
     same type as what you just defined. *)
 
 Theorem booltree_ind_type_correct : booltree_ind_type.
-Proof. (* FILL IN HERE *) Admitted.
-
+Proof. exact booltree_ind. Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (toy_ind)
@@ -229,8 +239,8 @@ Proof. (* FILL IN HERE *) Admitted.
     principle Coq generates is that given above: *)
 
 Inductive Toy : Type :=
-  (* FILL IN HERE *)
-.
+  | con1 (b : bool)
+  | con2 (n : nat) (t : Toy).
 
 (** Show that your definition is correct by proving the following theorem.
     You should be able to instantiate [f] and [g] with your two constructors,
@@ -243,8 +253,7 @@ Theorem Toy_correct : exists f g,
     (forall b : bool, P (f b)) ->
     (forall (n : nat) (t : Toy), P t -> P (g n t)) ->
     forall t : Toy, P t.
-Proof. (* FILL IN HERE *) Admitted.
-
+Proof. exists con1, con2. exact Toy_ind. Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -303,6 +312,13 @@ Check tree_ind.
                forall n : nat, P (constr3 X m n)) ->
             forall m : mytype X, P m
 *) 
+
+Inductive mytype (X : Type) : Type :=
+  | constr1 (x : X) : mytype X
+  | constr2 (n : nat) : mytype X
+  | constr3 (m : mytype X) (n : nat) : mytype X.
+
+Check mytype_ind.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (foo)
@@ -317,7 +333,15 @@ Check tree_ind.
              (forall f1 : nat -> foo X Y,
                (forall n : nat, P (f1 n)) -> P (quux X Y f1)) ->
              forall f2 : foo X Y, P f2
-*) 
+*)
+
+Inductive foo (X Y : Type) : Type :=
+  | bar (x : X) : foo X Y
+  | baz (y : Y) : foo X Y
+  | quux (f1 : nat -> foo X Y) : foo X Y.
+
+Check foo_ind.
+(* f1 can be seen as collection of foo X Y *)
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (foo')
@@ -334,10 +358,10 @@ Inductive foo' (X:Type) : Type :=
      foo'_ind :
         forall (X : Type) (P : foo' X -> Prop),
               (forall (l : list X) (f : foo' X),
-                    _______________________ ->
-                    _______________________   ) ->
-             ___________________________________________ ->
-             forall f : foo' X, ________________________
+                    P f ->
+                    P (C1 X l f)) ->
+             P (C2 X) ->
+             forall f : foo' X, P f
 *)
 
 (** [] *)
@@ -476,9 +500,29 @@ Proof.
     induction, and state the theorem and proof in terms of this
     defined proposition.  *)
 
-(* FILL IN HERE
+Definition P_add_assoc' (n : nat) : Prop := 
+  forall m p : nat, n + (m + p) = (n + m) + p.
 
-    [] *)
+Definition P_add_comm' (n : nat) : Prop :=
+  forall m : nat, n + m = m + n.
+
+Theorem add_assoc'' : forall n : nat, P_add_assoc' n.
+Proof.
+  apply nat_ind.
+  - unfold P_add_assoc'. intros m n.
+    simpl. reflexivity.
+  - unfold P_add_assoc'. intros n IH m p.
+    simpl. f_equal. apply IH.
+Qed.
+
+Theorem add_comm''' : forall n : nat, P_add_comm' n.
+Proof.
+  apply nat_ind.
+  - unfold P_add_comm'. intros m.
+    simpl. rewrite -> add_0_r. reflexivity.
+  - unfold P_add_comm'. intros n IH m.
+    simpl. rewrite <- plus_n_Sm. f_equal. apply IH.
+Qed.
 
 (* ################################################################# *)
 (** * Induction Principles for Propositions *)
