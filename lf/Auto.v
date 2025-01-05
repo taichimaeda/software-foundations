@@ -295,6 +295,7 @@ Proof with auto.
     rewrite H in H4. discriminate.
   - (* E_WhileTrue, with b true *)
     rewrite (IHE1_1 st'0 H3) in *...
+    (* rewrite (IHE1_1 st'0 H3) in *; auto. *)
 Qed.
 
 (* ################################################################# *)
@@ -600,7 +601,7 @@ Example ceval'_example1:
     end
   ]=> (Z !-> 4 ; X !-> 2).
 Proof.
-  eapply E_Seq. (* 1 *)
+  eapply E_Seq.
   - apply E_Asgn. (* 2 *)
     reflexivity. (* 3 *)
   - (* 4 *) apply E_IfFalse. reflexivity. apply E_Asgn. reflexivity.
