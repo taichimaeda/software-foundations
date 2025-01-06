@@ -174,10 +174,11 @@ Print ev_4'''.
 
 Theorem ev_8 : ev 8.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  repeat apply ev_SS. apply ev_0.
+Qed.
 
-Definition ev_8' : ev 8
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition ev_8' : ev 8 := 
+  ev_SS 6 (ev_SS 4 (ev_SS 2 (ev_SS 0 ev_0))).
 (** [] *)
 
 (* ################################################################# *)
@@ -394,8 +395,13 @@ Definition and_comm' P Q : P /\ Q <-> Q /\ P :=
 
     Construct a proof object for the following proposition. *)
 
-Definition conj_fact : forall P Q R, P /\ Q -> Q /\ R -> P /\ R
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition conj_fact : forall P Q R, P /\ Q -> Q /\ R -> P /\ R :=
+  fun (P Q R : Prop) => fun (HPQ : P /\ Q) => fun (HQR : Q /\ R) => 
+    match HPQ with
+    | conj HP HQ => match HQR with
+                    | conj HQ HR => conj HP HR
+                    end
+    end.
 (** [] *)
 
 (* ================================================================= *)
@@ -451,8 +457,12 @@ End Or.
 
     Construct a proof object for the following proposition. *)
 
-Definition or_commut' : forall P Q, P \/ Q -> Q \/ P
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition or_commut' : forall P Q, P \/ Q -> Q \/ P :=
+  fun (P Q : Prop) => fun (HPQ : P \/ Q) =>
+    match HPQ with
+    | or_introl HP => or_intror HP
+    | or_intror HQ => or_introl HQ
+    end.
 (** [] *)
 
 (* ================================================================= *)
@@ -497,8 +507,11 @@ Definition some_nat_is_even : exists n, ev n :=
 
     Construct a proof object for the following proposition. *)
 
-Definition ex_ev_Sn : ex (fun n => ev (S n))
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Check ex_intro.
+
+Definition ex_ev_Sn : ex (fun n => ev (S n)) :=
+  ex_intro (fun n => ev (S n)) 1 (ev_SS 0 ev_0).
+(* Constructor ex_intro requires the same parameter P for predicate *)
 (** [] *)
 
 (* ================================================================= *)
@@ -516,8 +529,8 @@ Inductive True : Prop :=
 
     Construct a proof object for the following proposition. *)
 
-Definition p_implies_true : forall P, P -> True
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition p_implies_true : forall P, P -> True :=
+  fun P => fun P => I.
 (** [] *)
 
 (** [False] is equally simple -- indeed, so simple it may look
@@ -552,8 +565,8 @@ Definition false_implies_zero_eq_one : False -> 0 = 1 :=
 
     Construct a proof object for the following proposition. *)
 
-Definition ex_falso_quodlibet' : forall P, False -> P
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition ex_falso_quodlibet' : forall P, False -> P :=
+  fun (P : Prop) => fun (contra : False) => match contra with end.
 (** [] *)
 
 End Props.
@@ -651,9 +664,14 @@ Qed.
     against the equality hypotheses. *)
 
 Definition eq_cons : forall (X : Type) (h1 h2 : X) (t1 t2 : list X),
-    h1 == h2 -> t1 == t2 -> h1 :: t1 == h2 :: t2
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
-
+    h1 == h2 -> t1 == t2 -> h1 :: t1 == h2 :: t2 :=
+  fun (X : Type) => fun (h1 h2 : X) => fun (t1 t2 : list X) => 
+  fun (Heqh : h1 == h2) => fun (Heqt : t1 == t2) =>
+    match Heqh with
+    | eq_refl h => match Heqt with
+                   | eq_refl t => eq_refl (h :: t)
+                   end
+    end.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (equality__leibniz_equality)
@@ -666,7 +684,9 @@ Definition eq_cons : forall (X : Type) (h1 h2 : X) (t1 t2 : list X),
 Lemma equality__leibniz_equality : forall (X : Type) (x y: X),
   x == y -> forall (P : X -> Prop), P x -> P y.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X x y Heq P Px.
+  inversion Heq. subst. exact Px.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (equality__leibniz_equality_term)
@@ -676,8 +696,13 @@ Proof.
     proof term constructed by tactics in the previous exercise is
     needessly complicated. Hint: pattern-match as soon as possible. *)
 Definition equality__leibniz_equality_term : forall (X : Type) (x y: X),
-    x == y -> forall P : (X -> Prop), P x -> P y
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+    x == y -> forall P : (X -> Prop), P x -> P y :=
+  fun (X : Type) => fun (x y : X) => fun (Heq : x == y) =>
+  match Heq with
+  | eq_refl x0 => (fun (P : X -> Prop) => fun (Px : P x0) => Px)
+  end.
+(* Use the fact (x and x0 are convertible) and (y and x0 are convertible)
+   in the type annotation of fun (Px : P x0) => ... so that the return type can unify *)
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (leibniz_equality__equality)
@@ -690,7 +715,10 @@ Definition equality__leibniz_equality_term : forall (X : Type) (x y: X),
 Lemma leibniz_equality__equality : forall (X : Type) (x y: X),
   (forall P:X->Prop, P x -> P y) -> x == y.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros X x y H.
+  specialize (H (fun t => t == x)).
+  simpl in H. destruct H; apply eq_refl.
+Qed.
 (** [] *)
 
 End EqualityPlayground.
@@ -825,38 +853,69 @@ Fail Definition falso : False := infinite_loop 0.
 
 (** **** Exercise: 2 stars, standard (and_assoc) *)
 Definition and_assoc : forall P Q R : Prop,
-    P /\ (Q /\ R) -> (P /\ Q) /\ R
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+    P /\ (Q /\ R) -> (P /\ Q) /\ R :=
+  fun (P Q R : Prop) => fun (HPQR : P /\ (Q /\ R)) =>
+  match HPQR with
+  | conj HP HQR => match HQR with
+                   | conj HQ HR => conj (conj HP HQ) HR
+                   end
+  end.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (or_distributes_over_and) *)
 Definition or_distributes_over_and : forall P Q R : Prop,
-    P \/ (Q /\ R) <-> (P \/ Q) /\ (P \/ R)
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+    P \/ (Q /\ R) <-> (P \/ Q) /\ (P \/ R) :=
+  fun (P Q R : Prop) => conj
+    (fun (HPQR : P \/ (Q /\ R)) =>
+     match HPQR with
+     | or_introl HP => conj (or_introl HP) (or_introl HP)
+     | or_intror HQR => match HQR with
+                        | conj HQ HR => conj (or_intror HQ) (or_intror HR)
+                        end
+     end)
+    (fun (HPQPR : (P \/ Q) /\ (P \/ R)) =>
+     match HPQPR with
+     | conj HPQ HPR => match HPQ, HPR with
+                       | or_introl HP, _ => or_introl HP
+                       | _, or_introl HP => or_introl HP
+                       | or_intror HQ, or_intror HR => or_intror (conj HQ HR)
+                       end
+     end).
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (negations) *)
 Definition double_neg : forall P : Prop,
-    P -> ~~P
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+    P -> ~~P :=
+  fun (P : Prop) => fun (HP : P) => fun (HPF : P -> False) => HPF HP.
+(* ~~P = (P -> False) -> False *)
 
 Definition contradiction_implies_anything : forall P Q : Prop,
-    (P /\ ~P) -> Q
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+    (P /\ ~P) -> Q :=
+  fun (P Q : Prop) => fun (HPNP : P /\ ~P) =>
+  match HPNP with
+  | conj HP HNP => match HNP HP with end
+  end.
 
 Definition de_morgan_not_or : forall P Q : Prop,
-    ~ (P \/ Q) -> ~P /\ ~Q
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+    ~ (P \/ Q) -> ~P /\ ~Q :=
+  fun (P Q : Prop) => fun (HNPQ : (P \/ Q) -> False) => 
+  conj (fun HP : P => HNPQ (or_introl HP))
+       (fun HQ : Q => HNPQ (or_intror HQ)).
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (currying) *)
 Definition curry : forall P Q R : Prop,
-    ((P /\ Q) -> R) -> (P -> (Q -> R))
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+    ((P /\ Q) -> R) -> (P -> (Q -> R)) :=
+  fun (P Q R : Prop) => fun (HPQR : (P /\ Q) -> R) =>
+  fun (HP : P) => fun (HQ : Q) => HPQR (conj HP HQ).
 
 Definition uncurry : forall P Q R : Prop,
-    (P -> (Q -> R)) -> ((P /\ Q) -> R)
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+    (P -> (Q -> R)) -> ((P /\ Q) -> R) :=
+  fun (P Q R : Prop) => fun (HPQR : P -> (Q -> R)) => 
+  fun (HPQ : P /\ Q) =>
+  match HPQ with
+  | conj HP HQ => (HPQR HP) HQ
+  end.
 (** [] *)
 
 (* ################################################################# *)
@@ -884,7 +943,11 @@ Theorem pe_implies_or_eq :
   propositional_extensionality ->
   forall (P Q : Prop), (P \/ Q) = (Q \/ P).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros PE P Q. unfold propositional_extensionality in PE.
+  apply PE. split.
+  - intros HPQ. destruct HPQ. right. exact H. left. exact H.
+  - intros HQP. destruct HQP. right. exact H. left. exact H.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, advanced (pe_implies_true_eq)
@@ -895,7 +958,12 @@ Proof.
 Lemma pe_implies_true_eq :
   propositional_extensionality ->
   forall (P : Prop), P -> True = P.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  intros PE P HP. unfold propositional_extensionality in PE.
+  apply PE. split.
+  - intros H. exact HP.
+  - intros H. exact I.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (pe_implies_pi)
@@ -918,7 +986,14 @@ Definition proof_irrelevance : Prop :=
 
 Theorem pe_implies_pi :
   propositional_extensionality -> proof_irrelevance.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  intros PE.
+  unfold proof_irrelevance.
+  intros P pf1 pf2.
+  pose proof (pe_implies_true_eq PE P). destruct H.
+  - exact pf1.
+  - destruct pf1, pf2. reflexivity.
+Qed.
 (** [] *)
 
 (* 2023-12-29 17:12 *)
