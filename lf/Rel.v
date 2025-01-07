@@ -430,6 +430,7 @@ Lemma rsc_trans :
 Proof.
   intros X R x y z H1 H2.
   induction H1.
+  (* Induction over H2 was tricky *)
   - exact H2.
   - apply rt1n_trans with y.
     + exact Hxy.
