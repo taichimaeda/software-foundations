@@ -1940,8 +1940,46 @@ Definition de_morgan_not_and_not := forall P Q:Prop,
 Definition implies_to_or := forall P Q:Prop,
   (P -> Q) -> (~P \/ Q).
 
-(* FILL IN HERE
-TODO
-    [] *)
+Theorem excluded_middle_implies_pierce : excluded_middle -> peirce.
+Proof.
+  unfold excluded_middle, peirce.
+  intros H1 P Q H2.
+  destruct (H1 P).
+  - exact H.
+  - apply H2. intros H3. contradiction.
+Qed.
+
+Theorem pierce_implies_double_negation_elimination : peirce -> double_negation_elimination.
+Proof.
+  unfold peirce, double_negation_elimination.
+  intros H1 P H2.
+  apply H1 with (Q := False). intros H3. unfold not in H2. contradiction.
+Qed.
+
+Theorem double_negation_elimination_implies_de_morgan_not_and_not : double_negation_elimination -> de_morgan_not_and_not.
+Proof.
+  unfold double_negation_elimination, de_morgan_not_and_not.
+  intros H1 P Q H2.
+  apply H1. intros H3. apply H2. split.
+  - intros H4. apply H3. left. exact H4.
+  - intros H4. apply H3. right. exact H4.
+Qed.
+
+Theorem de_morgan_not_and_not_implies_implies_to_or : de_morgan_not_and_not -> implies_to_or.
+Proof.
+  unfold de_morgan_not_and_not, implies_to_or.
+  intros H1 P Q H2.
+  apply H1. intros H3. unfold not in H3. destruct H3 as [H3 H3'].
+  apply H3. intros H4. apply H2 in H4. contradiction.
+Qed.
+
+Theorem implies_to_or_implies_excluded_middle : implies_to_or -> excluded_middle.
+Proof.
+  unfold implies_to_or, excluded_middle.
+  intros H1 P. destruct H1 with (P := P) (Q := P).
+  - intros H2. exact H2.
+  - right. exact H.
+  - left. exact H. 
+Qed.
 
 (* 2023-12-29 17:12 *)
